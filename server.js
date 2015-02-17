@@ -2,7 +2,16 @@ var express = require('express');
 var db = require('./models');
 var app = express();
 
-app.get('/', function (req, res) {
+app.get('/', function (req, res)
+{
+
+  var user = db.User;
+
+  console.log(user);
+
+
+
+
   res.send('Hello World!')
 })
 
