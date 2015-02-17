@@ -1,5 +1,6 @@
-var express = require('express')
-var app = express()
+var express = require('express');
+var db = require('./models');
+var app = express();
 
 app.get('/', function (req, res) {
   res.send('Hello World!')
