@@ -2,12 +2,34 @@
 
 module.exports = function(sequelize, DataTypes){
   var User = sequelize.define("User", {
-    firstName: DataTypes.STRING,
-    lastName: DataTypes.STRING,
-    countryId: DataTypes.INTEGER(),
-    emailAddress: DataTypes.STRING,
-    password: DataTypes.STRING,
-    salt: DataTypes.STRING
+    firstName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    lastName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    countryId: {
+      type: DataTypes.INTEGER(),
+      allowNull: false,
+    },
+    emailAddress: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      set: function(val)
+      {
+        this.setDataValue('password', val);
+      }
+    },
+    salt: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    }
   });
 
   return User;
