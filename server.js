@@ -4,20 +4,21 @@ var fs = require('fs');
 var db = require('./models');
 var jwt = require('jsonwebtoken');
 var expressJwt = require('express-jwt');
+var postData = require('body-parser');
+
+app.use(postData.json());
+app.use(postData.urlencoded({extended: true}));
 
 // Store this elsewhere later.
 var jwtSecret = "asdasfasdfawefasdfawefas";
-
 app.use(expressJwt({secret: jwtSecret}).unless({path: ['/api/user/authenticate', '/api/user/create']}));
 
 // Bootstrap controllers
 var controllersPath = __dirname + '/controllers';
 var controllerFiles = fs.readdirSync(controllersPath);
-
 controllerFiles.forEach(function(file){
-  require(controllersPath+'/'+file)(app, db, jwt, jwtSecret)
-})
-
+  require(controllersPath+'/'+file)(app, db, jwt, jwtSecret, postData);
+});
 
 app.get('/', function (req, res)
 {
@@ -26,16 +27,36 @@ app.get('/', function (req, res)
   res.send('Hello World!')
 });
 
-app.use(function(err, req, res, next){
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
+//app.use(function(err, req, res, next)
+//{
+//  console.log("error: " + err);
+//
+//  var status, message = null;
+//  switch(err.status)
+//  {
+//    case 401:
+//      status = err.status;
+//      message = err.name + ": " + err.code;
+//      break;
+//    default:
+//      status = 500;
+//      message = "Something is broken, we'll be looking into it.";
+//  };
+//
+//  errorResponse = {
+//    error: true,
+//    message: message
+//  };
+//
+//
+//  res.send(errorResponse);
+//
+//  //res.status(status).send(errorResponse);
+//});
 
-var server = app.listen(3000, function () {
-
+var server = app.listen(3000, function ()
+{
   var host = server.address().address
   var port = server.address().port
-
   console.log('Example app listening at http://%s:%s', host, port)
-
-})
+});

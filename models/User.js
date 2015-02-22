@@ -25,10 +25,6 @@ module.exports = function(sequelize, DataTypes){
       {
         this.setDataValue('password', val);
       }
-    },
-    salt: {
-      type: DataTypes.STRING,
-      allowNull: false,
     }
   });
 

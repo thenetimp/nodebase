@@ -5,12 +5,21 @@ module.exports = {
 
     migration.createTable('Users',
     {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+      },
       firstName: DataTypes.STRING,
       lastName: DataTypes.STRING,
       countryId: DataTypes.INTEGER(),
-      emailAddress: DataTypes.STRING,
+      emailAddress: {
+        type: DataTypes.STRING,
+        unique: true
+      },
       password: DataTypes.STRING,
-      salt: DataTypes.STRING
+      updatedAt: DataTypes.DATE,
+      createdAt: DataTypes.DATE
     });
 
     done();

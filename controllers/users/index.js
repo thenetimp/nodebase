@@ -1,36 +1,80 @@
-module.exports = function(app, db, jwt, jwtSecret)
+module.exports = function(app, db, jwt, jwtSecret, postData)
 {
   var password = require('../../lib/password');
 
-  app.get('/api/user/create', function (req, res)
+  app.post('/api/user/create', function (req, res)
   {
+    if(req.body.password != req.body.passwordConfirm)
+    {
+      res.status(500).send({error: true, message: "Password mismatch"});
+    }
+
     var user = db.User;
-    console.log(password.crypt("Test12345678910"));
-    res.send('Hello World!')
+    user.create({
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      countryId: req.body.countryId,
+      emailAddress: req.body.emailAddress,
+      password: password.crypt(req.body.password)
+    }).then(function(){
+      res.status(200).send({error: false, message: "User created"});
+    }).error(function(error){
+      res.status(500).send({error: true, message: error.errors});
+    });
   });
 
-  app.get('/api/user/authenticate', function (req, res)
+  app.post('/api/user/authenticate', function (req, res)
   {
+    var user = db.User;
 
-    // Perform authentication here.
+    user.find({
+      where: { emailAddress: req.body.emailAddress}
+    }).then(function(user)
+    {
+      if(!password.compare(req.body.password, user.values.password))
+      {
+        res.status(500).send({error: true, message: "Invalid account credentials"});
+      }
+    });
 
     token = jwt.sign({
-      username: "thenetimp2000@yahoo.com"
+      username: req.body.emailAddress
     }, jwtSecret);
 
-    res.send({token: token});
+    tokenResponse = {
+      error: false,
+      message: "User Authenticated",
+      data: {
+        token: token
+      }
+    };
 
+    res.send(tokenResponse);
   });
 
   app.get('/api/user/profile', function (req, res)
   {
+    try
+    {
+      var user = db.User;
+      user.find({
+        where: { emailAddress: req.user.username}
+      }).then(function(result)
+      {
+        profile = {
+          "firstName": result.values.firstName,
+          "lastName": result.values.lastName,
+          "emailAddress": result.values.emailAddress,
+          "countryId": result.values.countryId
+        }
 
-    profile = {
-      "firstName": "John",
-      "lastName": "Doe"
+        res.status(200).send(profile);
+
+      });
     }
-
-    res.send(profile);
-
+    catch (exception)
+    {
+      res.status(500).send({error: true, message: "Unable to find user"});
+    }
   });
 }
