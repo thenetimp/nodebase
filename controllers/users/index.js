@@ -9,8 +9,8 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
       res.status(500).send({error: true, message: "Password mismatch"});
     }
 
-    var user = db.User;
-    user.create({
+    var User = db.User;
+    User.create({
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       countryId: req.body.countryId,
@@ -25,9 +25,9 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
 
   app.post('/api/user/authenticate', function (req, res)
   {
-    var user = db.User;
+    var User = db.User;
 
-    user.find({
+    User.find({
       where: { emailAddress: req.body.emailAddress}
     }).then(function(user)
     {
@@ -56,20 +56,23 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
   {
     try
     {
-      var user = db.User;
-      user.find({
+      var User = db.User;
+      User.find({
         where: { emailAddress: req.user.username}
-      }).then(function(result)
+      }).then(function(user)
       {
-        profile = {
-          "firstName": result.values.firstName,
-          "lastName": result.values.lastName,
-          "emailAddress": result.values.emailAddress,
-          "countryId": result.values.countryId
+        if(user)
+        {
+          profile = {
+            "firstName": user.values.firstName,
+            "lastName": user.values.lastName,
+            "emailAddress": user.values.emailAddress,
+            "countryId": user.values.countryId
+          }
+          res.status(200).send(profile);
         }
 
-        res.status(200).send(profile);
-
+        res.status(500).send({error: true, message: "Unable to find user"});
       });
     }
     catch (exception)
