@@ -12,7 +12,15 @@ app.use(postData.urlencoded({extended: true}));
 
 // Store this elsewhere later.
 var jwtSecret = "asdasfasdfawefasdfawefas";
-app.use(expressJwt({secret: jwtSecret}).unless({path: ['/api/user/authenticate', '/api/user/create']}));
+anonymousPaths = [
+  '/api/user/authenticate',
+  '/api/user/create',
+  '/api/user/password-recovery-token',
+  '/api/user/password-recovery'
+];
+
+
+app.use(expressJwt({secret: jwtSecret}).unless({path: anonymousPaths}));
 
 // Bootstrap controllers
 var controllersPath = __dirname + '/controllers';
@@ -23,15 +31,11 @@ controllerFiles.forEach(function(file){
 
 app.get('/', function (req, res)
 {
-  var user = db.User;
-  console.log(password.crypt("Test12345678910"));
-  res.send('Hello World!')
+  res.send('No Service')
 });
 
 app.use(function(err, req, res, next)
 {
-  console.log("error: " + err);
-
   var status, message = null;
   switch(err.status)
   {
@@ -46,11 +50,16 @@ app.use(function(err, req, res, next)
 
   errorResponse = {
     error: true,
+    status: err.status,
     message: message
   };
 
+  console.log("error: ");
+  console.error(errorResponse);
+
   res.status(status).send(errorResponse);
 });
+
 
 var server = app.listen(3000, function ()
 {

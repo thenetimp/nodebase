@@ -10,14 +10,32 @@ module.exports = {
         autoIncrement: true,
         primaryKey: true
       },
-      firstName: DataTypes.STRING,
-      lastName: DataTypes.STRING,
+      firstName: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      lastName: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
       countryId: DataTypes.INTEGER(),
       emailAddress: {
         type: DataTypes.STRING,
-        unique: true
+        unique: true,
+        allowNull: false
       },
-      password: DataTypes.STRING,
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      passwordRecoveryToken: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
+      passwordRecoveryTokenExpire: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
       updatedAt: DataTypes.DATE,
       createdAt: DataTypes.DATE
     });

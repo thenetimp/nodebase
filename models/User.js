@@ -21,10 +21,22 @@ module.exports = function(sequelize, DataTypes){
     password: {
       type: DataTypes.STRING,
       allowNull: false,
-      set: function(val)
+      set: function (val)
       {
         this.setDataValue('password', val);
       }
+    },
+    passwordRecoveryToken: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      set: function(val)
+      {
+        this.setDataValue('passwordRecoveryToken', val);
+      }
+    },
+    passwordRecoveryTokenExpire: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   });
 

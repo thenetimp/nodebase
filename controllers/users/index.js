@@ -2,43 +2,43 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
 {
   var password = require('../../lib/password');
 
-  app.post('/api/user/create', function (req, res)
+  app.post('/api/user/create', function (request, response)
   {
-    if(req.body.password != req.body.passwordConfirm)
+    if(request.body.password != request.body.passwordConfirm)
     {
-      res.status(500).send({error: true, message: "Password mismatch"});
+      response.status(500).send({error: true, message: "Password mismatch"});
     }
 
     var User = db.User;
     User.create({
-      firstName: req.body.firstName,
-      lastName: req.body.lastName,
-      countryId: req.body.countryId,
-      emailAddress: req.body.emailAddress,
-      password: password.crypt(req.body.password)
+      firstName: request.body.firstName,
+      lastName: request.body.lastName,
+      countryId: request.body.countryId,
+      emailAddress: request.body.emailAddress,
+      password: password.crypt(request.body.password)
     }).then(function(){
-      res.status(200).send({error: false, message: "User created"});
+      response().status(200).send({error: false, message: "User created"});
     }).error(function(error){
-      res.status(500).send({error: true, message: error.errors});
+      response.status(500).send({error: true, message: error.errors});
     });
   });
 
-  app.post('/api/user/authenticate', function (req, res)
+  app.post('/api/user/authenticate', function (request, response)
   {
     var User = db.User;
 
     User.find({
-      where: { emailAddress: req.body.emailAddress}
+      where: { emailAddress: request.body.emailAddress}
     }).then(function(user)
     {
-      if(!password.compare(req.body.password, user.values.password))
+      if(!password.compare(request.body.password, user.values.password))
       {
-        res.status(500).send({error: true, message: "Invalid account credentials"});
+        response.status(500).send({error: true, message: "Invalid account credentials"});
       }
     });
 
     token = jwt.sign({
-      username: req.body.emailAddress
+      username: request.body.emailAddress
     }, jwtSecret);
 
     tokenResponse = {
@@ -49,16 +49,16 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
       }
     };
 
-    res.send(tokenResponse);
+    response.send(tokenResponse);
   });
 
-  app.get('/api/user/profile', function (req, res)
+  app.get('/api/user/profile', function (request, response)
   {
     try
     {
       var User = db.User;
       User.find({
-        where: { emailAddress: req.user.username}
+        where: { emailAddress: request.user.username}
       }).then(function(user)
       {
         if(user)
@@ -69,15 +69,76 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
             "emailAddress": user.values.emailAddress,
             "countryId": user.values.countryId
           }
-          res.status(200).send(profile);
+          response.status(200).send(profile);
         }
 
-        res.status(500).send({error: true, message: "Unable to find user"});
+        response.status(500).send({error: true, message: "Unable to find user"});
       });
     }
     catch (exception)
     {
-      res.status(500).send({error: true, message: "Unable to find user"});
+      response.status(500).send({error: true, message: "Unable to find user"});
     }
   });
+
+  app.post('/api/user/password-recovery-token', function(request, response)
+  {
+    try
+    {
+      var now, expireTime, User;
+      User = db.User;
+
+      User.find({
+        where: { emailAddress: request.body.emailAddress}
+      }).then(function(user)
+      {
+        now = new Date();
+        expireTime = now.getTime() + 86400;
+        user.updateAttributes({
+          passwordRecoveryToken : password.recoveryToken(),
+          passwordRecoveryTokenExpire : expireTime
+        }).then(function()
+        {
+          response.status(200).send({error: false, message: "token emailed"});
+        });
+      });
+    }
+    catch (exception)
+    {
+      response.status(500).send({error: true, message: "Unable to generate a token"});
+    }
+  });
+
+  app.post('/api/user/password-recovery', function(request, response)
+  {
+    try{
+
+      var now, expireTime, User;
+      User = db.User;
+
+      User.find({
+        where: {emailAddress: request.body.emailAddress}
+      }).then(function(user)
+      {
+        now = new Date();
+        nowtime = now.getTime()
+
+        if(user.passwordRecoveryToken == request.body.recoveryToken && nowtime > user.passwordRecoveryTokenExpire)
+        {
+          user.updateAttributes({
+            password: password.crypt(request.body.password)
+          });
+          response.status(200).send({error: false, message: "password changed"});
+          return;
+        }
+        response.status(500).send({error: true, message: "Password token invalid or expired"});
+      });
+    }
+    catch (exception)
+    {
+      response.status(500).send({error: true, message: "Unable to process the password recovery token"});
+    }
+  });
+
+
 }
