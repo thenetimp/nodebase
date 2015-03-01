@@ -7,6 +7,7 @@ var expressJwt = require('express-jwt');
 var postData = require('body-parser');
 var validator = require('validator');
 
+
 app.use(postData.json());
 app.use(postData.urlencoded({extended: true}));
 
@@ -26,7 +27,7 @@ app.use(expressJwt({secret: jwtSecret}).unless({path: anonymousPaths}));
 var controllersPath = __dirname + '/controllers';
 var controllerFiles = fs.readdirSync(controllersPath);
 controllerFiles.forEach(function(file){
-  require(controllersPath+'/'+file)(app, db, jwt, jwtSecret, postData, validator);
+  require(controllersPath+'/'+file)(app, db, jwt, jwtSecret, validator);
 });
 
 app.get('/', function (req, res)
@@ -34,6 +35,20 @@ app.get('/', function (req, res)
   res.send('No Service')
 });
 
+app.use(function(err, req, res, next)
+{
+  console.log(error);
+  switch(err.status)
+  {
+    case 401:
+      res.send(status, {status: err.status, message: message, type:'authorization'});
+      break;
+    default:
+      res.send(status, {status:500, message: 'internal error', type:'internal'});
+  };
+});
+
+/*
 app.use(function(err, req, res, next)
 {
   var status, message = null;
@@ -59,7 +74,7 @@ app.use(function(err, req, res, next)
 
   res.status(status).send(errorResponse);
 });
-
+*/
 
 var server = app.listen(3000, function ()
 {

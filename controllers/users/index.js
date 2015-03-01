@@ -1,55 +1,90 @@
-module.exports = function(app, db, jwt, jwtSecret, postData)
+module.exports = function(app, db, jwt, jwtSecret, validator)
 {
 
-  var password = require('../../lib/password');
+  var passwd = require('../../lib/password');
 
   app.post('/api/user/create', function (request, response)
   {
-    if(request.body.password != request.body.passwordConfirm)
+    try
     {
-      response.status(500).send({error: true, message: "Password mismatch"});
+      // Create variables foreach input.
+      var firstName, lastName, emailAddress, password, passwordConfirm, User;
+      firstName = validator.trim(request.body.firstName);
+      lastName = validator.trim(request.body.lastName);
+      emailAddress = validator.trim(request.body.emailAddress);
+      password = validator.trim(request.body.password);
+      passwordConfirm = validator.trim(request.body.passwordConfirm);
+
+      if(!validator.isEmail(emailAddress))
+        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
+
+      if(password != passwordConfirm)
+        throw new Error('ERROR_INPUT_COMPARATOR_PASSWORD_INVALID');
+
+      User = db.User;
+      User.create({
+        firstName: firstName,
+        lastName: lastName,
+        emailAddress: emailAddress,
+        password: passwd.crypt(password)
+      }).then(function()
+      {
+        response.status(200).send({error: false, message: "SUCCESS_USER_CREATED"});
+      }).error(function(error)
+      {
+        console.log(error);
+        response.status(500).send({error: true, message: error.errors});
+      });
+    }
+    catch (exception)
+    {
+      co
+      response.status(500).send({error: true, message: error.errors});
     }
 
-    var User = db.User;
-    User.create({
-      firstName: request.body.firstName,
-      lastName: request.body.lastName,
-      emailAddress: request.body.emailAddress,
-      password: password.crypt(request.body.password)
-    }).then(function(){
-      response().status(200).send({error: false, message: "User created"});
-    }).error(function(error){
-      response.status(500).send({error: true, message: error.errors});
-    });
+
   });
 
   app.post('/api/user/authenticate', function (request, response)
   {
-    var User = db.User;
-
-    User.find({
-      where: { emailAddress: request.body.emailAddress}
-    }).then(function(user)
+    try
     {
-      if(!password.compare(request.body.password, user.values.password))
+      var emailAddress, password;
+      emailAddress = validator.trim(request.body.emailAddress);
+      password = validator.trim(request.body.password);
+
+      if(!validator.isEmail(emailAddress))
+        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
+
+      var User = db.User;
+      User.find({
+        where: { emailAddress: emailAddress}
+      }).then(function(user)
       {
-        response.status(500).send({error: true, message: "Invalid account credentials"});
-      }
-    });
+        try
+        {
+          if(!user)
+            throw new Error('ERROR_CREDENTIALS_INVALID');
 
-    token = jwt.sign({
-      username: request.body.emailAddress
-    }, jwtSecret);
+          if(!passwd.compare(password, user.password))
+            throw new Error('ERROR_CREDENTIALS_INVALID');
 
-    tokenResponse = {
-      error: false,
-      message: "User Authenticated",
-      data: {
-        token: token
-      }
-    };
+          token = jwt.sign({username: emailAddress }, jwtSecret);
+          response.send({error: false, message: "SUCCESS_USER_AUTHENTICATED", data: {token: token}});
+        }
+        catch (exception)
+        {
+          // For some reason we are unable to catch the error message from the throw
+          // need to look into why that is happeninguntil then.
+          response.status(500).send({error: true, message: 'ERROR_CREDENTIALS_INVALID'});
+        }
 
-    response.send(tokenResponse);
+      });
+    }
+    catch (exception)
+    {
+      response.status(500).send({error: true, message: exception});
+    }
   });
 
   app.get('/api/user/profile', function (request, response)
@@ -61,18 +96,16 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
         where: { emailAddress: request.user.username}
       }).then(function(user)
       {
-        if(user)
-        {
-          profile = {
-            "firstName": user.values.firstName,
-            "lastName": user.values.lastName,
-            "emailAddress": user.values.emailAddress
-          }
-          response.status(200).send(profile);
-          return
-        }
+        if(!user)
+          throw new Error('ERROR_INVALID_USER');
 
-        response.status(500).send({error: true, message: "Unable to find user"});
+        // Build the profile from the user object
+        profile = {
+          "firstName": user.firstName,
+          "lastName": user.lastName,
+          "emailAddress": user.emailAddress
+        }
+        response.status(200).send(profile);
       });
     }
     catch (exception)
@@ -89,7 +122,7 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
       User = db.User;
 
       User.find({
-        where: { emailAddress: request.body.emailAddress}
+        where: { emailAddress: emailAddress}
       }).then(function(user)
       {
         now = new Date();
@@ -100,19 +133,21 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
         }).then(function()
         {
           response.status(200).send({error: false, message: "token emailed"});
+          return;
         });
       });
     }
     catch (exception)
     {
       response.status(500).send({error: true, message: "Unable to generate a token"});
+      return;
     }
   });
 
   app.post('/api/user/password-recovery', function(request, response)
   {
-    try{
-
+    try
+    {
       var now, expireTime, User;
       User = db.User;
 

@@ -24,7 +24,7 @@ module.exports = function(sequelize, DataTypes){
     },
     passwordRecoveryToken: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       set: function(val)
       {
         this.setDataValue('passwordRecoveryToken', val);
