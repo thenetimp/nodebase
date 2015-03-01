@@ -1,5 +1,6 @@
 module.exports = function(app, db, jwt, jwtSecret, postData)
 {
+
   var password = require('../../lib/password');
 
   app.post('/api/user/create', function (request, response)
@@ -13,7 +14,6 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
     User.create({
       firstName: request.body.firstName,
       lastName: request.body.lastName,
-      countryId: request.body.countryId,
       emailAddress: request.body.emailAddress,
       password: password.crypt(request.body.password)
     }).then(function(){
@@ -66,10 +66,10 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
           profile = {
             "firstName": user.values.firstName,
             "lastName": user.values.lastName,
-            "emailAddress": user.values.emailAddress,
-            "countryId": user.values.countryId
+            "emailAddress": user.values.emailAddress
           }
           response.status(200).send(profile);
+          return
         }
 
         response.status(500).send({error: true, message: "Unable to find user"});

@@ -18,7 +18,6 @@ module.exports = {
         type: DataTypes.STRING,
         allowNull: false
       },
-      countryId: DataTypes.INTEGER(),
       emailAddress: {
         type: DataTypes.STRING,
         unique: true,

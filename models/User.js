@@ -10,10 +10,6 @@ module.exports = function(sequelize, DataTypes){
       type: DataTypes.STRING,
       allowNull: false,
     },
-    countryId: {
-      type: DataTypes.INTEGER(),
-      allowNull: false,
-    },
     emailAddress: {
       type: DataTypes.STRING,
       allowNull: false,
