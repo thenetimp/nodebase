@@ -123,10 +123,11 @@ module.exports = function(app, db, jwt, jwtSecret, postData)
         now = new Date();
         nowtime = now.getTime()
 
-        if(user.passwordRecoveryToken == request.body.recoveryToken && nowtime > user.passwordRecoveryTokenExpire)
+        if(user.passwordRecoveryToken!= "" && user.passwordRecoveryToken == request.body.recoveryToken && nowtime > user.passwordRecoveryTokenExpire)
         {
           user.updateAttributes({
-            password: password.crypt(request.body.password)
+            password: password.crypt(request.body.password),
+            passwordRecoveryToken: ""
           });
           response.status(200).send({error: false, message: "password changed"});
           return;
