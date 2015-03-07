@@ -37,14 +37,14 @@ app.get('/', function (req, res)
 
 app.use(function(err, req, res, next)
 {
-  console.log(error);
+  console.log(err);
   switch(err.status)
   {
     case 401:
-      res.send(status, {status: err.status, message: message, type:'authorization'});
+      res.send(err.status, {status: err.status, message: err.message, type:'authorization'});
       break;
     default:
-      res.send(status, {status:500, message: 'internal error', type:'internal'});
+      res.send(err.status, {status:500, message: 'internal error', type:'internal'});
   };
 });
 

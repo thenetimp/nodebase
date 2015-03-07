@@ -110,7 +110,7 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
     }
     catch (exception)
     {
-      response.status(500).send({error: true, message: "Unable to find user"});
+      response.status(500).send({error: true, message: exception});
     }
   });
 
@@ -118,29 +118,36 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
   {
     try
     {
-      var now, expireTime, User;
-      User = db.User;
+      var emailAddress, now, expireTime;
+      emailAddress = validator.trim(request.body.emailAddress);
+
+      if(!validator.isEmail(emailAddress))
+        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
+
+      var User = db.User;
 
       User.find({
         where: { emailAddress: emailAddress}
       }).then(function(user)
       {
+        if(!user)
+          throw new Error('ERROR_INVALID_USER');
+
         now = new Date();
         expireTime = now.getTime() + 86400;
         user.updateAttributes({
-          passwordRecoveryToken : password.recoveryToken(),
+          passwordRecoveryToken : passwd.recoveryToken(),
           passwordRecoveryTokenExpire : expireTime
         }).then(function()
         {
-          response.status(200).send({error: false, message: "token emailed"});
-          return;
+          response.status(200).send({error: false, message: "SUCCESS_TOKEN_EMAILED"});
         });
       });
     }
     catch (exception)
     {
-      response.status(500).send({error: true, message: "Unable to generate a token"});
-      return;
+      console.log(exception);
+      response.status(500).send({error: true, message: exception});
     }
   });
 
@@ -148,31 +155,59 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
   {
     try
     {
-      var now, expireTime, User;
-      User = db.User;
+      var now, expireTime, emailAddress, recoveryToken, password, passwordConfirm;
+      var User = db.User;
+
+
+      emailAddress = validator.trim(request.body.emailAddress);
+      recoveryToken = validator.trim(request.body.recoveryToken);
+      password = validator.trim(request.body.password);
+      passwordConfirm = validator.trim(request.body.passwordConfirm);
+
+      if(!validator.isEmail(emailAddress))
+        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
+
 
       User.find({
-        where: {emailAddress: request.body.emailAddress}
+        where: {emailAddress: emailAddress}
       }).then(function(user)
       {
-        now = new Date();
-        nowtime = now.getTime()
-
-        if(user.passwordRecoveryToken!= "" && user.passwordRecoveryToken == request.body.recoveryToken && nowtime > user.passwordRecoveryTokenExpire)
+        try
         {
+          now = new Date();
+          nowtime = now.getTime()
+
+
+          if(!user)
+            throw new Error('ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED');
+
+          console.log(user.passwordRecoveryToken == "");
+          console.log(user.passwordRecoveryToken != recoveryToken);
+          console.log(user.passwordRecoveryToken);
+          console.log(recoveryToken);
+          console.log(nowtime < user.passwordRecoveryTokenExpire);
+
+          if(user.passwordRecoveryToken == "" || user.passwordRecoveryToken != request.body.recoveryToken || nowtime < user.passwordRecoveryTokenExpire)
+            throw new Error('ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED');
+
           user.updateAttributes({
-            password: password.crypt(request.body.password),
+            password: password.crypt(password),
             passwordRecoveryToken: ""
+          }).then(function()
+          {
+            response.status(200).send({error: false, message: "SUCCESS_PASSWORD_CHANGED"});
           });
-          response.status(200).send({error: false, message: "password changed"});
-          return;
         }
-        response.status(500).send({error: true, message: "Password token invalid or expired"});
+        catch (exception)
+        {
+          response.status(500).send({error: true, message: 'ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED'});
+        }
+
       });
     }
     catch (exception)
     {
-      response.status(500).send({error: true, message: "Unable to process the password recovery token"});
+      response.status(500).send({error: true, message: 'ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED'});
     }
   });
 
