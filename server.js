@@ -48,7 +48,7 @@ app.use(function(error, request, response, next)
         break;
       case 500:
         if(error.message !== false)
-          response.status(500).send({status:500, message: error.message, type:'process'});
+          response.status(500).send({status:500, message: error.message, code: error.code, type:'process'});
       default:
         response.status(500).send({status:500, message: 'internal error', type:'internal'});
     };

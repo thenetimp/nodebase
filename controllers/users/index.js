@@ -18,13 +18,13 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
 
     if(!validator.isEmail(emailAddress))
     {
-      error.status = 500; error.message = "ERROR_INVALID_EMAIL";
+      error.status = 500; error.message = "ERROR_INVALID_EMAIL"; error.code = 101;
       return next(error);
     }
 
     if(password != passwordConfirm)
     {
-      error.status = 500; error.message = "ERROR_INPUT_COMPARATOR_PASSWORD_INVALID";
+      error.status = 500; error.message = "ERROR_INPUT_COMPARATOR_PASSWORD_INVALID";  error.code = 102;
       return next(error);
     }
 
@@ -40,174 +40,162 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
       return;
     }).error(function(error)
     {
-      console.log(error);
-      error.status = 500; error.message = "ERROR_UNABLE_TO_CREATE_USER";
+      error.status = 500; error.message = "ERROR_UNABLE_TO_CREATE_USER";  error.code = 103;
       return next(error);
     });
   });
 
-
-
-
   app.post('/api/user/authenticate', function (request, response)
   {
-    try
+    // Create the default error container
+    var error = new Error();
+
+    // Create variables foreach input.
+    var emailAddress, password;
+    emailAddress = validator.trim(request.body.emailAddress);
+    password = validator.trim(request.body.password);
+
+    if(!validator.isEmail(emailAddress))
     {
-      var emailAddress, password;
-      emailAddress = validator.trim(request.body.emailAddress);
-      password = validator.trim(request.body.password);
+      error.status = 500; error.message = "ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID"; error.code = 201;
+      return next(error);
+    }
 
-      if(!validator.isEmail(emailAddress))
-        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
-
-      var User = db.User;
-      User.find({
-        where: { emailAddress: emailAddress}
-      }).then(function(user)
+    var User = db.User;
+    User.find({
+      where: { emailAddress: emailAddress}
+    }).then(function(user)
+    {
+      if(!user)
       {
-        try
-        {
-          if(!user)
-            throw new Error('ERROR_CREDENTIALS_INVALID');
+        error.status = 500; error.message = "ERROR_CREDENTIALS_INVALID"; error.code = 202;
+        return next(error);
+      }
 
-          if(!passwd.compare(password, user.password))
-            throw new Error('ERROR_CREDENTIALS_INVALID');
+      if(!passwd.compare(password, user.password))
+      {
+        error.status = 500; error.message = "ERROR_CREDENTIALS_INVALID"; error.code = 203;
+        return next(error);
+      }
 
-          token = jwt.sign({username: emailAddress }, jwtSecret);
-          response.send({error: false, message: "SUCCESS_USER_AUTHENTICATED", data: {token: token}});
-        }
-        catch (exception)
-        {
-          // For some reason we are unable to catch the error message from the throw
-          // need to look into why that is happeninguntil then.
-          response.status(500).send({error: true, message: 'ERROR_CREDENTIALS_INVALID'});
-        }
+      token = jwt.sign({username: emailAddress }, jwtSecret);
+      response.send({error: false, message: "SUCCESS_USER_AUTHENTICATED", data: {token: token}});
 
-      });
-    }
-    catch (exception)
-    {
-      response.status(500).send({error: true, message: exception});
-    }
+    });
   });
 
   app.get('/api/user/profile', function (request, response)
   {
-    try
-    {
-      var User = db.User;
-      User.find({
-        where: { emailAddress: request.user.username}
-      }).then(function(user)
-      {
-        if(!user)
-          throw new Error('ERROR_INVALID_USER');
+    // Create the default error container
+    var error = new Error();
 
-        // Build the profile from the user object
-        profile = {
-          "firstName": user.firstName,
-          "lastName": user.lastName,
-          "emailAddress": user.emailAddress
-        }
-        response.status(200).send(profile);
-      });
-    }
-    catch (exception)
+    var User = db.User;
+    User.find({
+      where: { emailAddress: request.user.username}
+    }).then(function(user)
     {
-      response.status(500).send({error: true, message: exception});
-    }
+      if(!user)
+      {
+        error.status = 500; error.message = "ERROR_INVALID_USER"; error.code = 301;
+        return next(error);
+      }
+
+      // Build the profile from the user object
+      profile = {
+        "firstName": user.firstName,
+        "lastName": user.lastName,
+        "emailAddress": user.emailAddress
+      }
+      response.status(200).send(profile);
+    });
   });
 
   app.post('/api/user/password-recovery-token', function(request, response)
   {
-    try
+    // Create the default error container
+    var error = new Error();
+
+    // Create variables foreach input.
+    var emailAddress, now, expireTime;
+    emailAddress = validator.trim(request.body.emailAddress);
+
+    if(!validator.isEmail(emailAddress))
     {
-      var emailAddress, now, expireTime;
-      emailAddress = validator.trim(request.body.emailAddress);
+      error.status = 500; error.message = "ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID"; error.code = 401;
+      return next(error);
+    }
 
-      if(!validator.isEmail(emailAddress))
-        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
+    var User = db.User;
 
-      var User = db.User;
-
-      User.find({
-        where: { emailAddress: emailAddress}
-      }).then(function(user)
+    User.find({
+      where: { emailAddress: emailAddress}
+    }).then(function(user)
+    {
+      if(!user)
       {
-        if(!user)
-          throw new Error('ERROR_INVALID_USER');
+        error.status = 500; error.message = "ERROR_INVALID_USER"; error.code = 402;
+        return next(error);
+      }
 
-        now = new Date();
-        expireTime = now.getTime() + 86400;
-        user.updateAttributes({
-          passwordRecoveryToken : passwd.recoveryToken(),
-          passwordRecoveryTokenExpire : expireTime
-        }).then(function()
-        {
-          response.status(200).send({error: false, message: "SUCCESS_TOKEN_EMAILED"});
-        });
+      now = new Date();
+      expireTime = now.getTime() + 86400;
+      user.updateAttributes({
+        passwordRecoveryToken : passwd.recoveryToken(),
+        passwordRecoveryTokenExpire : expireTime
+      }).then(function()
+      {
+        response.status(200).send({error: false, message: "SUCCESS_TOKEN_EMAILED"});
       });
-    }
-    catch (exception)
-    {
-      console.log(exception);
-      response.status(500).send({error: true, message: exception});
-    }
+    });
   });
 
   app.post('/api/user/password-recovery', function(request, response)
   {
-    try
+    // Create the default error container
+    var error = new Error();
+    var now, expireTime, emailAddress, recoveryToken, password, passwordConfirm;
+    var User = db.User;
+
+    // Create variables foreach input.
+    emailAddress = validator.trim(request.body.emailAddress);
+    recoveryToken = validator.trim(request.body.recoveryToken);
+    password = validator.trim(request.body.password);
+    passwordConfirm = validator.trim(request.body.passwordConfirm);
+
+    if(!validator.isEmail(emailAddress))
     {
-      var now, expireTime, emailAddress, recoveryToken, password, passwordConfirm;
-      var User = db.User;
+      error.status = 500; error.message = "ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID"; error.code = 501;
+      return next(error);
+    }
 
 
-      emailAddress = validator.trim(request.body.emailAddress);
-      recoveryToken = validator.trim(request.body.recoveryToken);
-      password = validator.trim(request.body.password);
-      passwordConfirm = validator.trim(request.body.passwordConfirm);
+    User.find({
+      where: {emailAddress: emailAddress}
+    }).then(function(user)
+    {
+      now = new Date();
+      nowtime = now.getTime()
 
-      if(!validator.isEmail(emailAddress))
-        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
 
-
-      User.find({
-        where: {emailAddress: emailAddress}
-      }).then(function(user)
+      if(!user)
       {
-        try
-        {
-          now = new Date();
-          nowtime = now.getTime()
+        error.status = 500; error.message = "ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED"; error.code = 501;
+        return next(error);
+      }
 
+      if(user.passwordRecoveryToken == "" || user.passwordRecoveryToken != request.body.recoveryToken || nowtime < user.passwordRecoveryTokenExpire)
+      {
+        error.status = 500; error.message = "ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED"; error.code = 501;
+        return next(error);
+      }
 
-          if(!user)
-            throw new Error('ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED');
-
-          if(user.passwordRecoveryToken == "" || user.passwordRecoveryToken != request.body.recoveryToken || nowtime < user.passwordRecoveryTokenExpire)
-            throw new Error('ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED');
-
-          user.updateAttributes({
-            password: password.crypt(password),
-            passwordRecoveryToken: ""
-          }).then(function()
-          {
-            response.status(200).send({error: false, message: "SUCCESS_PASSWORD_CHANGED"});
-          });
-        }
-        catch (exception)
-        {
-          response.status(500).send({error: true, message: 'ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED'});
-        }
-
+      user.updateAttributes({
+        password: password.crypt(password),
+        passwordRecoveryToken: ""
+      }).then(function()
+      {
+        response.status(200).send({error: false, message: "SUCCESS_PASSWORD_CHANGED"});
       });
-    }
-    catch (exception)
-    {
-      response.status(500).send({error: true, message: 'ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED'});
-    }
+    });
   });
-
-
 }
