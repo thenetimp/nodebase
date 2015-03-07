@@ -3,47 +3,51 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
 
   var passwd = require('../../lib/password');
 
-  app.post('/api/user/create', function (request, response)
+  app.post('/api/user/create', function (request, response, next)
   {
-    try
+    // Create the default error container
+    var error = new Error();
+
+    // Create variables foreach input.
+    var firstName, lastName, emailAddress, password, passwordConfirm, User;
+    firstName = validator.trim(request.body.firstName);
+    lastName = validator.trim(request.body.lastName);
+    emailAddress = validator.trim(request.body.emailAddress);
+    password = validator.trim(request.body.password);
+    passwordConfirm = validator.trim(request.body.passwordConfirm);
+
+    if(!validator.isEmail(emailAddress))
     {
-      // Create variables foreach input.
-      var firstName, lastName, emailAddress, password, passwordConfirm, User;
-      firstName = validator.trim(request.body.firstName);
-      lastName = validator.trim(request.body.lastName);
-      emailAddress = validator.trim(request.body.emailAddress);
-      password = validator.trim(request.body.password);
-      passwordConfirm = validator.trim(request.body.passwordConfirm);
-
-      if(!validator.isEmail(emailAddress))
-        throw new Error('ERROR_INPUT_VALDATION_EMAILADDRESS_INVALID');
-
-      if(password != passwordConfirm)
-        throw new Error('ERROR_INPUT_COMPARATOR_PASSWORD_INVALID');
-
-      User = db.User;
-      User.create({
-        firstName: firstName,
-        lastName: lastName,
-        emailAddress: emailAddress,
-        password: passwd.crypt(password)
-      }).then(function()
-      {
-        response.status(200).send({error: false, message: "SUCCESS_USER_CREATED"});
-      }).error(function(error)
-      {
-        console.log(error);
-        response.status(500).send({error: true, message: error.errors});
-      });
-    }
-    catch (exception)
-    {
-      co
-      response.status(500).send({error: true, message: error.errors});
+      error.status = 500; error.message = "ERROR_INVALID_EMAIL";
+      return next(error);
     }
 
+    if(password != passwordConfirm)
+    {
+      error.status = 500; error.message = "ERROR_INPUT_COMPARATOR_PASSWORD_INVALID";
+      return next(error);
+    }
 
+    User = db.User;
+    User.create({
+      firstName: firstName,
+      lastName: lastName,
+      emailAddress: emailAddress,
+      password: passwd.crypt(password)
+    }).then(function()
+    {
+      response.status(200).send({error: false, message: "SUCCESS_USER_CREATED"});
+      return;
+    }).error(function(error)
+    {
+      console.log(error);
+      error.status = 500; error.message = "ERROR_UNABLE_TO_CREATE_USER";
+      return next(error);
+    });
   });
+
+
+
 
   app.post('/api/user/authenticate', function (request, response)
   {
@@ -180,12 +184,6 @@ module.exports = function(app, db, jwt, jwtSecret, validator)
 
           if(!user)
             throw new Error('ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED');
-
-          console.log(user.passwordRecoveryToken == "");
-          console.log(user.passwordRecoveryToken != recoveryToken);
-          console.log(user.passwordRecoveryToken);
-          console.log(recoveryToken);
-          console.log(nowtime < user.passwordRecoveryTokenExpire);
 
           if(user.passwordRecoveryToken == "" || user.passwordRecoveryToken != request.body.recoveryToken || nowtime < user.passwordRecoveryTokenExpire)
             throw new Error('ERROR_INVALID_TOKEN_OR_TOKEN_EXPIRED');

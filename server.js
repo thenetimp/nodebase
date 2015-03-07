@@ -37,14 +37,22 @@ app.get('/', function (request, response)
 
 app.use(function(error, request, response, next)
 {
-  switch(error.status)
+  if(error)
   {
-    case 401:
-      response.status(error.status).send({status: error.status, message: 'INVALID_TOKEN_UNAUTHORIZED', type:'authorization'});
-      break;
-    default:
-      response.status(error.status).send({status:500, message: 'internal error', type:'internal'});
-  };
+    console.log(error);
+
+    switch(error.status)
+    {
+      case 401:
+        response.status(error.status).send({status: error.status, message: 'INVALID_TOKEN_UNAUTHORIZED', type:'authorization'});
+        break;
+      case 500:
+        if(error.message !== false)
+          response.status(500).send({status:500, message: error.message, type:'process'});
+      default:
+        response.status(500).send({status:500, message: 'internal error', type:'internal'});
+    };
+  }
 });
 
 var server = app.listen(3000, function ()
