@@ -37,14 +37,13 @@ app.get('/', function (req, res)
 
 app.use(function(err, req, res, next)
 {
-  console.log(err);
   switch(err.status)
   {
     case 401:
-      res.send(err.status, {status: err.status, message: err.message, type:'authorization'});
+      res.status(err.status).send({status: err.status, message: 'INVALID_TOKEN_UNAUTHORIZED', type:'authorization'});
       break;
     default:
-      res.send(err.status, {status:500, message: 'internal error', type:'internal'});
+      res.status(err.status).send({status:500, message: 'internal error', type:'internal'});
   };
 });
 
