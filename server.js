@@ -30,54 +30,26 @@ controllerFiles.forEach(function(file){
   require(controllersPath+'/'+file)(app, db, jwt, jwtSecret, validator);
 });
 
-app.get('/', function (req, res)
+app.get('/', function (request, response)
 {
-  res.send('No Service')
+  response.send('No Service')
 });
 
-app.use(function(err, req, res, next)
+app.use(function(error, request, response, next)
 {
-  switch(err.status)
+  switch(error.status)
   {
     case 401:
-      res.status(err.status).send({status: err.status, message: 'INVALID_TOKEN_UNAUTHORIZED', type:'authorization'});
+      response.status(error.status).send({status: error.status, message: 'INVALID_TOKEN_UNAUTHORIZED', type:'authorization'});
       break;
     default:
-      res.status(err.status).send({status:500, message: 'internal error', type:'internal'});
+      response.status(error.status).send({status:500, message: 'internal error', type:'internal'});
   };
 });
-
-/*
-app.use(function(err, req, res, next)
-{
-  var status, message = null;
-  switch(err.status)
-  {
-    case 401:
-      status = err.status;
-      message = err.name + ": " + err.code;
-      break;
-    default:
-      status = 500;
-      message = "Something is broken, we'll be looking into it.";
-  };
-
-  errorResponse = {
-    error: true,
-    status: err.status,
-    message: message
-  };
-
-  console.log("error: ");
-  console.error(errorResponse);
-
-  res.status(status).send(errorResponse);
-});
-*/
 
 var server = app.listen(3000, function ()
 {
   var host = server.address().address
   var port = server.address().port
-  console.log('Example app listening at http://%s:%s', host, port)
+  console.log('Application started at http://localhost:%s/', port);
 });
