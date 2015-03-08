@@ -1,6 +1,5 @@
 module.exports = function(app, db, jwt, jwtSecret, validator)
 {
-
   var passwd = require('../../lib/password');
 
   app.post('/api/user/create', function (request, response, next)

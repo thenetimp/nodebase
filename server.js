@@ -20,7 +20,6 @@ anonymousPaths = [
   '/api/user/password-recovery'
 ];
 
-
 app.use(expressJwt({secret: jwtSecret}).unless({path: anonymousPaths}));
 
 // Bootstrap controllers
@@ -39,6 +38,9 @@ app.get('/', function (request, response, next)
   return next(error);
 });
 
+/*
+ * Middleware to catch errors and respond to them
+ */
 app.use(function(error, request, response, next)
 {
   if(error)
