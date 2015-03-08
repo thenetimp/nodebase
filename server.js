@@ -30,17 +30,19 @@ controllerFiles.forEach(function(file){
   require(controllersPath+'/'+file)(app, db, jwt, jwtSecret, validator);
 });
 
-app.get('/', function (request, response)
+app.get('/', function (request, response, next)
 {
-  response.send('No Service')
+  new Error();
+  error.code = "001";
+  error.message = "INVALID_REQUEST";
+  error.status= 500;
+  return next(error);
 });
 
 app.use(function(error, request, response, next)
 {
   if(error)
   {
-    console.log(error);
-
     switch(error.status)
     {
       case 401:
